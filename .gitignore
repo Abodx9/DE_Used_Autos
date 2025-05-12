@@ -134,7 +134,7 @@ env/
 venv/
 ENV/
 tst/
-python-version
+.python-version
 env.bak/
 venv.bak/
 
