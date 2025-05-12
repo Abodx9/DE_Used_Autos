@@ -133,6 +133,8 @@ celerybeat.pid
 env/
 venv/
 ENV/
+tst/
+python-version
 env.bak/
 venv.bak/
 
