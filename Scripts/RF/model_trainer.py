@@ -52,7 +52,7 @@ class ModelTrainer:
         print(f"ModelTrainer initialisiert. Features: {self.features}, Ziel: {self.target}")
         print(f"Datenpunkte: {self.X.shape[0]}, Features: {self.X.shape[1]}")
 
-    def split_data(self, test_size: float = 0.2, random_state: int = 42):
+    def split_data(self, test_size: float = 0.5, random_state: int = 42):
         """
         Teilt die Daten in Trainings- und Testsets auf.
         """
@@ -66,6 +66,7 @@ class ModelTrainer:
     def build_and_train_model(self, n_estimators: int = 100, random_state: int = 42):
         """
         Erstellt die Vorverarbeitungs-Pipeline und trainiert den Random Forest Regressor.
+        Verwendet Best Practice für max_features.
         """
         print("\n--- Erstelle und trainiere das Modell ---")
 
@@ -83,7 +84,28 @@ class ModelTrainer:
         print(f"Numerische Spalten für Skalierung: {numerische_spalten}")
         print(f"Kategoriale Spalten für One-Hot-Encoding: {kategoriale_spalten}")
 
-        rf_model = RandomForestRegressor(n_estimators=n_estimators, random_state=random_state, n_jobs=-1)
+        # --- BEST PRACTICE ANPASSUNG FÜR max_features ---
+        # Um die Anzahl der Features nach der Transformation zu ermitteln,
+        # fitten wir den Preprocessor kurz auf den Trainingsdaten und transformieren diese.
+        # So erhalten wir die korrekte Anzahl der Spalten, die der Regressor sehen wird.
+        temp_preprocessor_fitted = preprocessor.fit(self.X_train)
+        n_features_after_preprocessing = temp_preprocessor_fitted.transform(self.X_train).shape[1]
+
+        # Best Practice für Regression: max_features = sqrt(Anzahl der Features)
+        # Für Klassifikation wäre es typischerweise log2(Anzahl der Features) oder sqrt.
+        max_features_value = int(np.sqrt(n_features_after_preprocessing))
+
+        # Sicherstellen, dass max_features mindestens 1 ist, um Fehler bei sehr wenigen Features zu vermeiden
+        if max_features_value == 0:
+            max_features_value = 1
+
+        print(f"Gesamtzahl der Features nach Preprocessing: {n_features_after_preprocessing}")
+        print(f"Random Forest max_features auf Best Practice gesetzt: {max_features_value} (sqrt der Features)")
+
+        rf_model = RandomForestRegressor(n_estimators=n_estimators,
+                                         random_state=random_state,
+                                         n_jobs=-1,
+                                         max_features=max_features_value)  # <-- HIER IST DIE ANPASSUNG!
 
         self.full_pipeline = Pipeline(steps=[('preprocessor', preprocessor),
                                              ('regressor', rf_model)])
